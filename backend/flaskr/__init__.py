@@ -1,3 +1,4 @@
+import json
 import os
 from unicodedata import category
 from flask import Flask, request, abort, jsonify
@@ -54,6 +55,7 @@ def create_app(test_config=None):
     data = Category.query.all()
     categories = [category.format() for category in data]
     
+    
     if len(categories) == 0:
       abort(404)
       
@@ -87,6 +89,9 @@ def create_app(test_config=None):
     selection = Question.query.order_by(Question.id).all()
     curr_questions = paginate_questions(request, selection)
     
+    # data = Category.query.all()
+    # categories = [category.format() for category in data]
+    
     if len(curr_questions) == 0:
       abort(404)
     
@@ -104,7 +109,7 @@ def create_app(test_config=None):
   
   '''
   @TODO: 
-  Create an endpoint to DELETE question using a question ID. 
+ # *  Create an endpoint to DELETE question using a question ID. 
 
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
@@ -133,13 +138,23 @@ def create_app(test_config=None):
   
   '''
   @TODO: 
-  Create an endpoint to POST a new question, 
+  # * Create an endpoint to POST a new question, 
   which will require the question and answer text, 
   category, and difficulty score.
 
   TEST: When you submit a question on the "Add" tab, 
   the form will clear and the question will appear at the end of the last page
   of the questions list in the "List" tab.  
+  '''
+  '''
+  @TODO: 
+  # * Create a POST endpoint to get questions based on a search term. 
+  It should return any questions for whom the search term 
+  is a substring of the question. 
+
+  TEST: Search by any phrase. The questions list will update to include 
+  only question that include that string within their question. 
+  Try using the word "title" to start. 
   '''
   
   @app.route('/questions', methods=['POST'])
@@ -165,51 +180,55 @@ def create_app(test_config=None):
         })
       
       else:
-      
-        new_question = Question(question=new_question, answer=new_answer, category=new_category, difficulty=new_difficulty)
-        new_question.insert()
+        question = Question(
+            question=new_question, 
+            answer=new_answer, 
+            category=new_category, 
+            difficulty=new_difficulty
+        )
         
+        question.insert()
         selection = Question.query.order_by(Question.id).all()
-        curr_questions = paginate_questions(request, selection)
+        categories = Category.query.all()
+        current_questions = paginate_questions(request, selection)
+        current_categories = [category.format() for category in categories]
         
-        categories = Category.query.order_by(Category.id).all()
-        categories_dict = {}
-
-        for category in categories:
-          categories_dict[category.id] = category.type
-        
+            
         return jsonify({
-          'success': True,
-          'created': new_question.id,
-          'questions': curr_questions,
-          'category': categories_dict,
-          'total_questions': len(curr_questions)
+            'success': True,
+            'created': question.id,
+            'questions': current_questions,
+            'category': current_categories,
+            'total_questions': len(current_questions)
         })
+        
     except:
       abort(422)
-      
 
   '''
   @TODO: 
-  Create a POST endpoint to get questions based on a search term. 
-  It should return any questions for whom the search term 
-  is a substring of the question. 
-
-  TEST: Search by any phrase. The questions list will update to include 
-  only question that include that string within their question. 
-  Try using the word "title" to start. 
-  '''
-  
-  
-
-  '''
-  @TODO: 
-  Create a GET endpoint to get questions based on category. 
+  # * Create a GET endpoint to get questions based on category. 
 
   TEST: In the "List" tab / main screen, clicking on one of the 
   categories in the left column will cause only questions of that 
   category to be shown. 
   '''
+  
+  @app.route('/categories/<int:category_id>/questions', methods=['GET'])
+  def get_questions_by_category(category_id):
+    selection = Question.query.order_by(Question.id).filter(Question.category == category_id)
+    curr_questions = paginate_questions(request, selection)
+    
+    if len(curr_questions) == 0:
+      abort(404)
+    
+    return jsonify({
+      'success': True,
+      'category_id': category_id,
+      'questions': curr_questions,
+      'total_questions': len(curr_questions)
+    })
+    
 
 
   '''
@@ -223,7 +242,36 @@ def create_app(test_config=None):
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
   '''
-
+  @app.route('/quizzes', methods=['POST'])
+  def play_quiz():
+    body = request.get_json()
+    
+    previous_question = body.get('previous_question', [])
+    category = body.get('category', None)
+    
+    try:
+      if category == 0 or category is None:
+        quiz_questions = Question.query.all()
+      else:
+        quiz_questions = Question.query.filter(Question.category == category).all()
+        
+      curr_questions = []
+      
+      for question in quiz_questions:
+        if question.id not in previous_question:
+          curr_questions.append(question.format())
+      
+      if len(curr_questions):
+        question = random.choice(curr_questions)
+        return jsonify({
+          'question': question
+        })
+      else:
+        abort(422)
+        
+    except:
+      abort(404)
+  
   '''
   @TODO: 
   Create error handlers for all expected errors 
