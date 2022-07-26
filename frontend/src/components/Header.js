@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import logo from '../logo.svg';
 import '../stylesheets/Header.css';
+import { Helmet} from 'react-helmet-async'
 
 class Header extends Component {
 
@@ -11,7 +12,8 @@ class Header extends Component {
   render() {
     return (
       <div className="App-header">
-        <h1 onClick={() => {this.navTo('')}}>Udacitrivia</h1>
+        <Helmet><title>Trivia</title></Helmet>
+        <h1 onClick={() => {this.navTo('')}}>Trivia</h1>
         <h2 onClick={() => {this.navTo('')}}>List</h2>
         <h2 onClick={() => {this.navTo('/add')}}>Add</h2>
         <h2 onClick={() => {this.navTo('/play')}}>Play</h2>
